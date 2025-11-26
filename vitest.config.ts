@@ -4,6 +4,9 @@ import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
+  define: {
+    'process.env.NEXT_PUBLIC_API_URL': JSON.stringify('https://tatico.spocws.icu/teste/followups_e5aa')
+  },
   test: {
     environment: 'jsdom',
     globals: true,
