@@ -38,11 +38,15 @@ function handleFetchError(error: unknown, response?: Response): ApiError {
   const errorObj = error instanceof Error ? error : new Error(String(error));
   const msg = errorObj.message;
 
-  if (msg === "TIMEOUT") return { type: "timeout", message: "Request timeout", userMessage: "O tempo de conexão esgotou. Verifique sua internet.", canRetry: true, originalError: errorObj };
+  if (process.env.NODE_ENV === "development") {
+    console.error("[DEV] API Error:", { message: msg, status: response?.status, error: errorObj });
+  }
+
+  if (msg === "TIMEOUT") return { type: "timeout", message: "Timeout", userMessage: "O tempo de conexão esgotou. Verifique sua internet.", canRetry: true, originalError: errorObj };
   if (!response || msg === "Failed to fetch") return { type: "network", message: "Network error", userMessage: "Não foi possível conectar ao servidor. Verifique sua conexão.", canRetry: true, originalError: errorObj };
-  if (response.status >= 500) return { type: "server", message: `Server error: ${response.status}`, userMessage: "O servidor está temporariamente indisponível.", canRetry: true, originalError: errorObj };
-  if (response.status === 404) return { type: "server", message: "Resource not found", userMessage: "Os dados solicitados não foram encontrados.", canRetry: false, originalError: errorObj };
-  return { type: "unknown", message: msg || "Unknown error", userMessage: "Ocorreu um erro inesperado. Tente novamente.", canRetry: true, originalError: errorObj };
+  if (response.status >= 500) return { type: "server", message: "Server error", userMessage: "O servidor está temporariamente indisponível.", canRetry: true, originalError: errorObj };
+  if (response.status === 404) return { type: "server", message: "Not found", userMessage: "Os dados solicitados não foram encontrados.", canRetry: false, originalError: errorObj };
+  return { type: "unknown", message: "Error", userMessage: "Ocorreu um erro inesperado. Tente novamente.", canRetry: true, originalError: errorObj };
 }
 
 export function useMonitorData(): UseMonitorDataReturn {

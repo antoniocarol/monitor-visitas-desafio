@@ -30,8 +30,10 @@ export function SearchBar({ searchTerm, onSearchChange, data, searchInputRef }: 
             ref={searchInputRef}
             type="text"
             value={searchTerm}
-            onChange={(e) => onSearchChange(e.target.value)}
+            onChange={(e) => onSearchChange(e.target.value.slice(0, 50))}
             placeholder="Buscar por nome ou CPF..."
+            maxLength={50}
+            autoComplete="off"
             className="w-full pl-10 pr-10 py-2.5 rounded-lg bg-white/10 border border-white/20 text-white placeholder:text-white/40 focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/40 transition-all duration-200 font-medium text-sm"
           />
           {searchTerm && (
