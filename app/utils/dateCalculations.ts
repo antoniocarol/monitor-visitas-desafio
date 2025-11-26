@@ -1,7 +1,8 @@
 import { MonitoredUser, ProcessedUser, MonitorStatus } from "../types/monitor";
 import { formatDistanceToNow, differenceInHours, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { URGENT_THRESHOLD_DAYS } from "../constants/config";
+
+const URGENT_THRESHOLD_DAYS = 2;
 
 const MS_PER_DAY = 86400000;
 

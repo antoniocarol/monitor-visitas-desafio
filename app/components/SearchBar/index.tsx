@@ -22,7 +22,7 @@ export function SearchBar({ searchTerm, onSearchChange, data, searchInputRef }: 
   const totalResults = data.overdue.length + data.urgent.length + data.scheduled.length;
 
   return (
-    <div className="sticky top-14 md:top-16 lg:top-20 z-10 w-full mx-auto px-4 py-3 lg:py-4 bg-zinc-900/98 backdrop-blur-md border-b border-white/10 shadow-lg">
+    <div className="w-full mx-auto px-4 py-3 lg:py-4 bg-zinc-900/98 backdrop-blur-md border-b border-white/10 shadow-lg">
       <div className="flex flex-col gap-3">
         <div className="relative w-full">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />

@@ -28,6 +28,8 @@ function createTestUser(overrides: Partial<ProcessedUser> = {}): ProcessedUser {
     lastVerifiedDateObj: new Date('2025-11-20T10:00:00'),
     cpfDigits: '12345678901',
     nameLower: 'joão silva',
+    daysOverdue: 0,
+    daysRemaining: 0,
   }
 
   if (overrides.status === 'overdue' || (!overrides.status)) {
@@ -36,7 +38,7 @@ function createTestUser(overrides: Partial<ProcessedUser> = {}): ProcessedUser {
       status: 'overdue' as const,
       daysOverdue: 5,
       ...overrides,
-    } as ProcessedUser
+    }
   }
 
   if (overrides.status === 'urgent') {
@@ -45,7 +47,7 @@ function createTestUser(overrides: Partial<ProcessedUser> = {}): ProcessedUser {
       status: 'urgent' as const,
       daysRemaining: 1,
       ...overrides,
-    } as ProcessedUser
+    }
   }
 
   return {
@@ -53,7 +55,7 @@ function createTestUser(overrides: Partial<ProcessedUser> = {}): ProcessedUser {
     status: 'scheduled' as const,
     daysRemaining: 7,
     ...overrides,
-  } as ProcessedUser
+  }
 }
 
 describe('MonitorCard', () => {

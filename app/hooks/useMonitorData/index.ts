@@ -4,7 +4,10 @@ import { useState, useEffect, useCallback, useMemo, useOptimistic, startTransiti
 import { MonitoredUser, ProcessedUser, MonitorColumnData, ApiError } from "../../types/monitor";
 import { processUser, sortOverdue, sortUrgent, sortScheduled, formatDateForApi } from "../../utils/dateCalculations";
 import { useDebounce } from "../useDebounce";
-import { API_URL, FETCH_TIMEOUT_MS, DEBOUNCE_DELAY_MS } from "../../constants/config";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL!;
+const FETCH_TIMEOUT_MS = 10000;
+const DEBOUNCE_DELAY_MS = 300;
 
 interface UseMonitorDataReturn {
   data: MonitorColumnData;
@@ -98,13 +101,16 @@ export function useMonitorData(): UseMonitorDataReturn {
 
   const registerVisit = useCallback(async (userId: number) => {
     let response: Response | undefined;
+    const now = new Date();
+    const formattedDate = formatDateForApi(now);
+
+    // 1. Atualização otimista - UI atualiza instantaneamente
+    startTransition(() => {
+      setOptimisticData({ userId, date: formattedDate, now });
+    });
 
     try {
-      const now = new Date();
-      const formattedDate = formatDateForApi(now);
-
-      setOptimisticData({ userId, date: formattedDate, now });
-
+      // 2. Request para API
       response = await fetchWithTimeout(`${API_URL}/${userId}`, {
         method: "PATCH",
         headers: {
@@ -116,31 +122,33 @@ export function useMonitorData(): UseMonitorDataReturn {
       });
 
       if (!response.ok) {
-        const apiError = handleFetchError(
-          new Error(`HTTP ${response.status}`),
-          response
-        );
-        throw apiError;
+        throw handleFetchError(new Error(`HTTP ${response.status}`), response);
       }
 
-      await fetchData();
+      // 3. Commit: Persiste no estado real (SEM re-fetch)
+      setRawData(prev => prev.map(user => {
+        if (user.id !== userId) return user;
+        const updated: MonitoredUser = { ...user, last_verified_date: formattedDate };
+        return processUser(updated, now) || user;
+      }));
     } catch (err) {
       throw err instanceof Error ? err : handleFetchError(err, response);
     }
-  }, [fetchData, setOptimisticData]);
+  }, [setOptimisticData]);
 
   const registerVisitBatch = useCallback(async (userIds: number[]): Promise<{ success: number[]; failed: number[] }> => {
     const now = new Date();
     const formattedDate = formatDateForApi(now);
-
     const results = { success: [] as number[], failed: [] as number[] };
 
+    // 1. Atualizações otimistas para todos
     startTransition(() => {
       for (const userId of userIds) {
         setOptimisticData({ userId, date: formattedDate, now });
       }
     });
 
+    // 2. Requests em paralelo
     const promises = userIds.map(async (userId) => {
       try {
         const response = await fetchWithTimeout(`${API_URL}/${userId}`, {
@@ -167,9 +175,18 @@ export function useMonitorData(): UseMonitorDataReturn {
     results.success = settled.filter(r => r.success).map(r => r.userId);
     results.failed = settled.filter(r => !r.success).map(r => r.userId);
 
-    await fetchData();
+    // 3. Commit: Persiste apenas os bem sucedidos no estado real (SEM re-fetch)
+    if (results.success.length > 0) {
+      const successSet = new Set(results.success);
+      setRawData(prev => prev.map(user => {
+        if (!successSet.has(user.id)) return user;
+        const updated: MonitoredUser = { ...user, last_verified_date: formattedDate };
+        return processUser(updated, now) || user;
+      }));
+    }
+
     return results;
-  }, [fetchData, setOptimisticData]);
+  }, [setOptimisticData]);
 
   const filteredAndCategorizedData = useMemo((): MonitorColumnData => {
     let dataToProcess = optimisticData;

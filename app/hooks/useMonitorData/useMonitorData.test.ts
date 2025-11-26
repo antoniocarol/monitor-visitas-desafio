@@ -3,8 +3,9 @@ import { renderHook, act, waitFor } from '@testing-library/react'
 import { useMonitorData } from './index'
 import { server } from '../../__tests__/mocks/server'
 import { http, HttpResponse, delay } from 'msw'
-import { API_URL } from '../../constants/config'
 import { mockUsers, createOverdueUser, createUrgentUser, createScheduledUser, createMockUser, createDateString } from '../../__tests__/mocks/data'
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL!
 
 function makeOverdueUser(id: number, name: string = 'Usuário Teste') {
   return createMockUser({

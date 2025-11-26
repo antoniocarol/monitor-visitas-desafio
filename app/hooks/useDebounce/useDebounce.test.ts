@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useDebounce } from './index'
-import { DEBOUNCE_DELAY_MS } from '../../constants/config'
+
+const DEBOUNCE_DELAY_MS = 300
 
 describe('useDebounce', () => {
   beforeEach(() => { vi.useFakeTimers() })

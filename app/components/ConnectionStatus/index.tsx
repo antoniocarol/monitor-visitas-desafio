@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { Wifi, WifiOff } from "lucide-react";
-import { API_URL, CONNECTION_CHECK_INTERVAL_MS } from "../../constants/config";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL!;
+const CONNECTION_CHECK_INTERVAL_MS = 5000;
 
 interface ConnectionStatusProps {
   className?: string;

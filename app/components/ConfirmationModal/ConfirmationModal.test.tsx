@@ -29,6 +29,8 @@ function createTestUser(
     lastVerifiedDateObj: new Date('2025-11-20T10:00:00'),
     cpfDigits: `${id}`.padStart(11, '0'),
     nameLower: name.toLowerCase(),
+    daysOverdue: 0,
+    daysRemaining: 0,
   }
 
   if (status === 'overdue') {

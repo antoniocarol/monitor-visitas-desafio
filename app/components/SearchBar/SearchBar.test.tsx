@@ -29,6 +29,7 @@ describe('SearchBar', () => {
         nameLower: 'joão silva',
         status: 'overdue' as const,
         daysOverdue: 5,
+        daysRemaining: 0,
       },
     ],
     urgent: [
@@ -44,6 +45,7 @@ describe('SearchBar', () => {
         cpfDigits: '98765432100',
         nameLower: 'maria santos',
         status: 'urgent' as const,
+        daysOverdue: 0,
         daysRemaining: 1,
       },
       {
@@ -58,6 +60,7 @@ describe('SearchBar', () => {
         cpfDigits: '11122233344',
         nameLower: 'pedro oliveira',
         status: 'urgent' as const,
+        daysOverdue: 0,
         daysRemaining: 2,
       },
     ],
@@ -74,6 +77,7 @@ describe('SearchBar', () => {
         cpfDigits: '55566677788',
         nameLower: 'ana costa',
         status: 'scheduled' as const,
+        daysOverdue: 0,
         daysRemaining: 10,
       },
     ],
@@ -271,8 +275,8 @@ describe('SearchBar', () => {
       const { container } = render(<SearchBar {...defaultProps} />)
 
       const searchBar = container.firstChild as HTMLElement
-      expect(searchBar).toHaveClass('sticky')
-      expect(searchBar).toHaveClass('z-10')
+      expect(searchBar).toHaveClass('w-full')
+      expect(searchBar).toHaveClass('bg-zinc-900/98')
     })
 
     it('input tem classes de foco corretas', () => {

@@ -1,6 +1,7 @@
 import { http, HttpResponse, delay } from 'msw'
-import { API_URL } from '../../constants/config'
 import { mockUsers } from './data'
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL!
 
 export const handlers = [
   http.get(API_URL, () => HttpResponse.json(mockUsers)),
