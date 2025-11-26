@@ -16,7 +16,8 @@ Sistema de monitoramento de visitas para acompanhamento de individuos sob medida
 10. [Estilizacao](#estilizacao)
 11. [Testes](#testes)
 12. [Configuracao](#configuracao)
-13. [Licenca](#licenca)
+13. [Seguranca](#seguranca)
+14. [Licenca](#licenca)
 
 ---
 
@@ -645,6 +646,44 @@ GitHub Actions em `.github/workflows/test.yml`:
 4. Execucao do linter
 5. Execucao dos testes com cobertura
 6. Build de producao (apos testes passarem)
+
+---
+
+## Seguranca
+
+### Headers HTTP
+
+O projeto implementa headers de seguranca via `next.config.ts`:
+
+| Header | Valor | Protecao |
+|--------|-------|----------|
+| X-Frame-Options | SAMEORIGIN | Previne clickjacking |
+| X-Content-Type-Options | nosniff | Previne MIME sniffing |
+| Referrer-Policy | strict-origin-when-cross-origin | Controla vazamento via Referer |
+| Permissions-Policy | camera=(), microphone=(), geolocation=() | Desativa APIs sensiveis |
+
+### Validacao de Input
+
+O campo de busca implementa:
+- Limite de 50 caracteres (`maxLength`)
+- Sanitizacao no onChange
+- `autoComplete="off"` para dados sensiveis
+
+### Tratamento de Erros
+
+Mensagens de erro sao sanitizadas para nao expor detalhes tecnicos:
+- Logs detalhados apenas em `development`
+- Mensagens genericas para o usuario final
+- Codigos de status HTTP nao sao expostos na UI
+
+### Consideracoes
+
+Por ser um desafio tecnico sem controle do backend, algumas praticas ideais nao foram implementadas:
+- Autenticacao/Autorizacao (requer backend)
+- Rate limiting real (requer backend)
+- Mascaramento de CPF conforme LGPD (dado sensivel vem da API)
+- API proxy para ocultar URL do backend
+- Offline mode (Offline mode queries queue)
 
 ---
 
