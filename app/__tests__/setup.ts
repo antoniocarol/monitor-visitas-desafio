@@ -1,8 +1,8 @@
 import '@testing-library/jest-dom'
 import { beforeAll, afterEach, afterAll } from 'vitest'
 import { server } from './mocks/server'
+import './mocks/framer-motion'
 
-// Setup MSW server
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }))
 afterEach(() => server.resetHandlers())
 afterAll(() => server.close())

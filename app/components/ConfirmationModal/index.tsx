@@ -23,6 +23,7 @@ export const ConfirmationModal = memo(function ConfirmationModal({
 }: ConfirmationModalProps) {
   const confirmButtonRef = useRef<HTMLButtonElement>(null);
 
+  // KEYBOARD & FOCUS FLUX >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
   useEffect(() => {
     if (!isOpen) return;
 
@@ -39,6 +40,7 @@ export const ConfirmationModal = memo(function ConfirmationModal({
       document.body.style.overflow = "";
     };
   }, [isOpen, loading, onCancel]);
+  // KEYBOARD & FOCUS FLUX <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
   return (
     <AnimatePresence>

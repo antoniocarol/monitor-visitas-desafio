@@ -1,14 +1,20 @@
 "use client";
 
 import { memo, useState, useMemo, useEffect } from "react";
-import { Inbox, ChevronDown, CheckCircle, Square, CheckSquare, Minus } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Inbox, ChevronDown, CheckCircle, Square, CheckSquare, Minus } from "lucide-react";
 import { ProcessedUser, MonitorStatus } from "../../types/monitor";
 import { MonitorCard } from "../MonitorCard";
 import { SkeletonList } from "../Skeleton";
+import { AnimatedCounter } from "../AnimatedCounter";
 import { STATUS_STYLES } from "../../constants/statusStyles";
 import { STATUS_ICONS } from "../../constants/statusIcons";
-import { AnimatedCounter } from "../AnimatedCounter";
+
+const EMPTY_MESSAGES = {
+  overdue: { title: "Tudo em dia!", description: "Não há visitas atrasadas no momento" },
+  urgent: { title: "Nenhum item urgente", description: "Novos itens aparecerão aqui automaticamente" },
+  scheduled: { title: "Nenhuma visita programada", description: "Visitas programadas aparecerão aqui" },
+};
 
 interface MonitorColumnProps {
   title: string;
@@ -25,12 +31,6 @@ interface MonitorColumnProps {
   onLongPress?: (userId: number) => void;
 }
 
-const EMPTY_MESSAGES = {
-  overdue: { title: "Tudo em dia!", description: "Não há visitas atrasadas no momento" },
-  urgent: { title: "Nenhum item urgente", description: "Novos itens aparecerão aqui automaticamente" },
-  scheduled: { title: "Nenhuma visita programada", description: "Visitas programadas aparecerão aqui" },
-};
-
 export const MonitorColumn = memo(function MonitorColumn({
   title,
   status,
@@ -45,11 +45,22 @@ export const MonitorColumn = memo(function MonitorColumn({
   onDeselectAll,
   onLongPress,
 }: MonitorColumnProps) {
-  const style = STATUS_STYLES[status];
-  const Icon = STATUS_ICONS[status];
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isDesktop, setIsDesktop] = useState(false);
 
+  const style = STATUS_STYLES[status];
+  const Icon = STATUS_ICONS[status];
+
+  const columnUserIds = useMemo(() => users.map((u) => u.id), [users]);
+  const selectedInColumn = useMemo(() => columnUserIds.filter((id) => selectedIds.has(id)), [columnUserIds, selectedIds]);
+
+  const isAllSelected = columnUserIds.length > 0 && selectedInColumn.length === columnUserIds.length;
+  const isSomeSelected = selectedInColumn.length > 0 && !isAllSelected;
+  const shouldAutoCollapse = !isDesktop && searchTerm && users.length === 0;
+  const actuallyCollapsed = shouldAutoCollapse || isCollapsed;
+  const checkboxStyle = isAllSelected ? style.checkbox : isSomeSelected ? style.checkboxPartial : "bg-white/10 text-white/50 hover:bg-white/20 hover:text-white";
+
+  // RESPONSIVE FLUX >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
   useEffect(() => {
     const handleResize = () => {
       const desktop = window.innerWidth >= 768;
@@ -60,20 +71,7 @@ export const MonitorColumn = memo(function MonitorColumn({
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
-
-  const columnUserIds = useMemo(() => users.map((u) => u.id), [users]);
-  const selectedInColumn = useMemo(() => columnUserIds.filter((id) => selectedIds.has(id)), [columnUserIds, selectedIds]);
-
-  const isAllSelected = columnUserIds.length > 0 && selectedInColumn.length === columnUserIds.length;
-  const isSomeSelected = selectedInColumn.length > 0 && !isAllSelected;
-  const shouldAutoCollapse = !isDesktop && searchTerm && users.length === 0;
-  const actuallyCollapsed = shouldAutoCollapse || isCollapsed;
-
-  const checkboxStyle = isAllSelected
-    ? style.checkbox
-    : isSomeSelected
-      ? style.checkboxPartial
-      : "bg-white/10 text-white/50 hover:bg-white/20 hover:text-white";
+  // RESPONSIVE FLUX <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
   return (
     <section className="flex flex-col flex-1 h-full">

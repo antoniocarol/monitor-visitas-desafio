@@ -1,3 +1,5 @@
+"use client";
+
 import { useState, useEffect } from "react";
 
 const DEBOUNCE_DELAY_MS = 300;

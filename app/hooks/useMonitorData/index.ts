@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useCallback, useMemo, useOptimistic, startTransition } from "react";
 import { MonitoredUser, ProcessedUser, MonitorColumnData, ApiError } from "../../types/monitor";
-import { processUser, sortOverdue, sortUrgent, sortScheduled, formatDateForApi } from "../../utils/dateCalculations";
 import { useDebounce } from "../useDebounce";
+import { processUser, sortOverdue, sortUrgent, sortScheduled, formatDateForApi } from "../../utils/dateCalculations";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL!;
 const FETCH_TIMEOUT_MS = 10000;
@@ -56,141 +56,17 @@ export function useMonitorData(): UseMonitorDataReturn {
     (state, { userId, date, now }) => {
       return state.map((user) => {
         if (user.id !== userId) return user;
-
-        const updated: MonitoredUser = {
-          ...user,
-          last_verified_date: date,
-        };
+        const updated: MonitoredUser = { ...user, last_verified_date: date };
         const processed = processUser(updated, now);
         return processed || user;
       });
     }
   );
-
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<ApiError | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
   const debouncedSearchTerm = useDebounce(searchTerm, DEBOUNCE_DELAY_MS);
-
-  const fetchData = useCallback(async () => {
-    let response: Response | undefined;
-    try {
-      setLoading(true);
-      setError(null);
-
-      response = await fetchWithTimeout(API_URL);
-
-      if (!response.ok) {
-        const apiError = handleFetchError(new Error(`HTTP ${response.status}`), response);
-        setError(apiError);
-        return;
-      }
-
-      const users: MonitoredUser[] = await response.json();
-
-      const now = new Date();
-      const processed = users
-        .filter((user) => user.active)
-        .map((user) => processUser(user, now))
-        .filter((user): user is ProcessedUser => user !== null);
-
-      setRawData(processed);
-    } catch (err) {
-      setError(handleFetchError(err, response));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  const registerVisit = useCallback(async (userId: number) => {
-    let response: Response | undefined;
-    const now = new Date();
-    const formattedDate = formatDateForApi(now);
-
-    // 1. Atualização otimista - UI atualiza instantaneamente
-    startTransition(() => {
-      setOptimisticData({ userId, date: formattedDate, now });
-    });
-
-    try {
-      // 2. Request para API
-      response = await fetchWithTimeout(`${API_URL}/${userId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          last_verified_date: formattedDate,
-        }),
-      });
-
-      if (!response.ok) {
-        throw handleFetchError(new Error(`HTTP ${response.status}`), response);
-      }
-
-      // 3. Commit: Persiste no estado real (SEM re-fetch)
-      setRawData(prev => prev.map(user => {
-        if (user.id !== userId) return user;
-        const updated: MonitoredUser = { ...user, last_verified_date: formattedDate };
-        return processUser(updated, now) || user;
-      }));
-    } catch (err) {
-      throw err instanceof Error ? err : handleFetchError(err, response);
-    }
-  }, [setOptimisticData]);
-
-  const registerVisitBatch = useCallback(async (userIds: number[]): Promise<{ success: number[]; failed: number[] }> => {
-    const now = new Date();
-    const formattedDate = formatDateForApi(now);
-    const results = { success: [] as number[], failed: [] as number[] };
-
-    // 1. Atualizações otimistas para todos
-    startTransition(() => {
-      for (const userId of userIds) {
-        setOptimisticData({ userId, date: formattedDate, now });
-      }
-    });
-
-    // 2. Requests em paralelo
-    const promises = userIds.map(async (userId) => {
-      try {
-        const response = await fetchWithTimeout(`${API_URL}/${userId}`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            last_verified_date: formattedDate,
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-
-        return { userId, success: true };
-      } catch {
-        return { userId, success: false };
-      }
-    });
-
-    const settled = await Promise.all(promises);
-    results.success = settled.filter(r => r.success).map(r => r.userId);
-    results.failed = settled.filter(r => !r.success).map(r => r.userId);
-
-    // 3. Commit: Persiste apenas os bem sucedidos no estado real (SEM re-fetch)
-    if (results.success.length > 0) {
-      const successSet = new Set(results.success);
-      setRawData(prev => prev.map(user => {
-        if (!successSet.has(user.id)) return user;
-        const updated: MonitoredUser = { ...user, last_verified_date: formattedDate };
-        return processUser(updated, now) || user;
-      }));
-    }
-
-    return results;
-  }, [setOptimisticData]);
 
   const filteredAndCategorizedData = useMemo((): MonitorColumnData => {
     let dataToProcess = optimisticData;
@@ -224,9 +100,118 @@ export function useMonitorData(): UseMonitorDataReturn {
     };
   }, [optimisticData, debouncedSearchTerm]);
 
+  // DATA FETCH FLUX >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+  const fetchData = useCallback(async () => {
+    let response: Response | undefined;
+    try {
+      setLoading(true);
+      setError(null);
+
+      response = await fetchWithTimeout(API_URL);
+
+      if (!response.ok) {
+        const apiError = handleFetchError(new Error(`HTTP ${response.status}`), response);
+        setError(apiError);
+        return;
+      }
+
+      const users: MonitoredUser[] = await response.json();
+
+      const now = new Date();
+      const processed = users
+        .filter((user) => user.active)
+        .map((user) => processUser(user, now))
+        .filter((user): user is ProcessedUser => user !== null);
+
+      setRawData(processed);
+    } catch (err) {
+      setError(handleFetchError(err, response));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+  // DATA FETCH FLUX <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+  // VISIT REGISTRATION FLUX >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+  const registerVisit = useCallback(async (userId: number) => {
+    let response: Response | undefined;
+    const now = new Date();
+    const formattedDate = formatDateForApi(now);
+
+    startTransition(() => {
+      setOptimisticData({ userId, date: formattedDate, now });
+    });
+
+    try {
+      response = await fetchWithTimeout(`${API_URL}/${userId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ last_verified_date: formattedDate }),
+      });
+
+      if (!response.ok) {
+        throw handleFetchError(new Error(`HTTP ${response.status}`), response);
+      }
+
+      setRawData(prev => prev.map(user => {
+        if (user.id !== userId) return user;
+        const updated: MonitoredUser = { ...user, last_verified_date: formattedDate };
+        return processUser(updated, now) || user;
+      }));
+    } catch (err) {
+      throw err instanceof Error ? err : handleFetchError(err, response);
+    }
+  }, [setOptimisticData]);
+
+  const registerVisitBatch = useCallback(async (userIds: number[]): Promise<{ success: number[]; failed: number[] }> => {
+    const now = new Date();
+    const formattedDate = formatDateForApi(now);
+    const results = { success: [] as number[], failed: [] as number[] };
+
+    startTransition(() => {
+      for (const userId of userIds) {
+        setOptimisticData({ userId, date: formattedDate, now });
+      }
+    });
+
+    const promises = userIds.map(async (userId) => {
+      try {
+        const response = await fetchWithTimeout(`${API_URL}/${userId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ last_verified_date: formattedDate }),
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        return { userId, success: true };
+      } catch {
+        return { userId, success: false };
+      }
+    });
+
+    const settled = await Promise.all(promises);
+    results.success = settled.filter(r => r.success).map(r => r.userId);
+    results.failed = settled.filter(r => !r.success).map(r => r.userId);
+
+    if (results.success.length > 0) {
+      const successSet = new Set(results.success);
+      setRawData(prev => prev.map(user => {
+        if (!successSet.has(user.id)) return user;
+        const updated: MonitoredUser = { ...user, last_verified_date: formattedDate };
+        return processUser(updated, now) || user;
+      }));
+    }
+
+    return results;
+  }, [setOptimisticData]);
+  // VISIT REGISTRATION FLUX <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
   return {
     data: filteredAndCategorizedData,

@@ -6,6 +6,7 @@ export function useSelectionMode() {
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
+  // SELECTION ACTIONS FLUX >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
   const enterSelectionMode = useCallback((initialId?: number) => {
     setIsSelectionMode(true);
     if (initialId !== undefined) {
@@ -40,7 +41,9 @@ export function useSelectionMode() {
   }, []);
 
   const clearSelection = useCallback(() => setSelectedIds(new Set()), []);
+  // SELECTION ACTIONS FLUX <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
+  // KEYBOARD ESCAPE FLUX >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
   useEffect(() => {
     if (!isSelectionMode) return;
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -49,6 +52,7 @@ export function useSelectionMode() {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isSelectionMode, exitSelectionMode]);
+  // KEYBOARD ESCAPE FLUX <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
   return {
     isSelectionMode,

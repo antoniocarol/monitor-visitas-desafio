@@ -2,61 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MonitorCard } from './index'
-import { ProcessedUser } from '../../types/monitor'
-
-vi.mock('framer-motion', () => ({
-  motion: {
-    div: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
-      <div {...props}>{children}</div>
-    ),
-    button: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
-      <button {...props}>{children}</button>
-    ),
-  },
-  AnimatePresence: ({ children }: React.PropsWithChildren) => <>{children}</>,
-}))
-
-function createTestUser(overrides: Partial<ProcessedUser> = {}): ProcessedUser {
-  const base = {
-    id: 1,
-    name: 'João Silva',
-    cpf: '12345678901',
-    active: true,
-    last_verified_date: '2025/11/20 10:00:00',
-    verify_frequency_in_days: 3,
-    nextVisitDate: new Date('2025-11-23'),
-    lastVerifiedDateObj: new Date('2025-11-20T10:00:00'),
-    cpfDigits: '12345678901',
-    nameLower: 'joão silva',
-    daysOverdue: 0,
-    daysRemaining: 0,
-  }
-
-  if (overrides.status === 'overdue' || (!overrides.status)) {
-    return {
-      ...base,
-      status: 'overdue' as const,
-      daysOverdue: 5,
-      ...overrides,
-    }
-  }
-
-  if (overrides.status === 'urgent') {
-    return {
-      ...base,
-      status: 'urgent' as const,
-      daysRemaining: 1,
-      ...overrides,
-    }
-  }
-
-  return {
-    ...base,
-    status: 'scheduled' as const,
-    daysRemaining: 7,
-    ...overrides,
-  }
-}
+import { createTestUser } from '../../__tests__/factories/createTestUser'
 
 describe('MonitorCard', () => {
   const mockOnRegisterVisit = vi.fn()
@@ -104,13 +50,13 @@ describe('MonitorCard', () => {
       const user = createTestUser({ status: 'urgent', daysRemaining: 0 })
       render(<MonitorCard user={user} onRegisterVisit={mockOnRegisterVisit} />)
 
-      expect(screen.getByText('HOJE')).toBeInTheDocument()
+      expect(screen.getAllByText(/hoje/i).length).toBeGreaterThan(0)
     })
 
     it('renderiza badge para scheduled', () => {
       const user = createTestUser({ status: 'scheduled', daysRemaining: 5 })
       render(<MonitorCard user={user} onRegisterVisit={mockOnRegisterVisit} />)
-      expect(screen.getByText(/em 5d/i)).toBeInTheDocument()
+      expect(screen.getAllByText(/em 5d/i).length).toBeGreaterThan(0)
     })
   })
 

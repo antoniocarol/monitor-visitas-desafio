@@ -2,65 +2,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MonitorColumn } from './index'
-import { ProcessedUser, MonitorStatus } from '../../types/monitor'
+import { MonitorStatus, ProcessedUser } from '../../types/monitor'
+import { createTestUser } from '../../__tests__/factories/createTestUser'
 
-vi.mock('framer-motion', () => ({
-  motion: {
-    div: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
-      <div {...props}>{children}</div>
-    ),
-    button: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
-      <button {...props}>{children}</button>
-    ),
-    span: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
-      <span {...props}>{children}</span>
-    ),
-  },
-  AnimatePresence: ({ children }: React.PropsWithChildren) => <>{children}</>,
-}))
-
-function createTestUser(
-  id: number,
-  status: MonitorStatus,
-  name: string = `Usuário ${id}`
-): ProcessedUser {
-  const base = {
-    id,
-    name,
-    cpf: `${id}`.padStart(11, '0'),
-    active: true,
-    last_verified_date: '2025/11/20 10:00:00',
-    verify_frequency_in_days: 3,
-    nextVisitDate: new Date('2025-11-23'),
-    lastVerifiedDateObj: new Date('2025-11-20T10:00:00'),
-    cpfDigits: `${id}`.padStart(11, '0'),
-    nameLower: name.toLowerCase(),
-    daysOverdue: 0,
-    daysRemaining: 0,
-  }
-
-  if (status === 'overdue') {
-    return {
-      ...base,
-      status: 'overdue' as const,
-      daysOverdue: 5,
-    }
-  }
-
-  if (status === 'urgent') {
-    return {
-      ...base,
-      status: 'urgent' as const,
-      daysRemaining: 1,
-    }
-  }
-
-  return {
-    ...base,
-    status: 'scheduled' as const,
-    daysRemaining: 7,
-  }
-}
+const createUser = (id: number, status: MonitorStatus, name = `Usuário ${id}`): ProcessedUser =>
+  createTestUser({ id, status, name })
 
 describe('MonitorColumn', () => {
   const mockOnRegisterVisit = vi.fn().mockResolvedValue(undefined)
@@ -108,9 +54,9 @@ describe('MonitorColumn', () => {
 
     it('renderiza contador de itens correto quando há usuários', () => {
       const users = [
-        createTestUser(1, 'overdue'),
-        createTestUser(2, 'overdue'),
-        createTestUser(3, 'overdue'),
+        createUser(1, 'overdue'),
+        createUser(2, 'overdue'),
+        createUser(3, 'overdue'),
       ]
       const { container } = render(<MonitorColumn {...defaultProps} users={users} />)
       const counter = container.querySelector('[role="status"].min-w-8')
@@ -146,7 +92,7 @@ describe('MonitorColumn', () => {
     })
 
     it('não renderiza cards durante loading', () => {
-      const users = [createTestUser(1, 'overdue')]
+      const users = [createUser(1, 'overdue')]
       render(<MonitorColumn {...defaultProps} users={users} loading={true} />)
       expect(screen.queryByText('Usuário 1')).not.toBeInTheDocument()
     })
@@ -154,9 +100,9 @@ describe('MonitorColumn', () => {
 
   describe('Modo seleção', () => {
     const usersForSelection = [
-      createTestUser(1, 'overdue', 'João'),
-      createTestUser(2, 'overdue', 'Maria'),
-      createTestUser(3, 'overdue', 'Pedro'),
+      createUser(1, 'overdue', 'João'),
+      createUser(2, 'overdue', 'Maria'),
+      createUser(3, 'overdue', 'Pedro'),
     ]
 
     it('mostra checkbox em modo seleção', () => {
@@ -292,8 +238,8 @@ describe('MonitorColumn', () => {
   describe('Renderização de cards', () => {
     it('renderiza card para cada usuário', () => {
       const users = [
-        createTestUser(1, 'overdue', 'João Silva'),
-        createTestUser(2, 'overdue', 'Maria Santos'),
+        createUser(1, 'overdue', 'João Silva'),
+        createUser(2, 'overdue', 'Maria Santos'),
       ]
 
       render(<MonitorColumn {...defaultProps} users={users} />)
@@ -303,7 +249,7 @@ describe('MonitorColumn', () => {
     })
 
     it('passa props de seleção para MonitorCard', () => {
-      const users = [createTestUser(1, 'overdue', 'João')]
+      const users = [createUser(1, 'overdue', 'João')]
       render(
         <MonitorColumn
           {...defaultProps}
@@ -320,7 +266,7 @@ describe('MonitorColumn', () => {
 
   describe('Indicador de alerta (overdue)', () => {
     it('mostra indicador de pulso vermelho para coluna overdue com usuários', () => {
-      const users = [createTestUser(1, 'overdue')]
+      const users = [createUser(1, 'overdue')]
       const { container } = render(
         <MonitorColumn {...defaultProps} status="overdue" users={users} />
       )
@@ -339,7 +285,7 @@ describe('MonitorColumn', () => {
     })
 
     it('não mostra indicador de pulso em modo seleção', () => {
-      const users = [createTestUser(1, 'overdue')]
+      const users = [createUser(1, 'overdue')]
       const { container } = render(
         <MonitorColumn
           {...defaultProps}
@@ -357,7 +303,7 @@ describe('MonitorColumn', () => {
 
   describe('Acessibilidade', () => {
     it('região de conteúdo tem role correto baseado no modo', () => {
-      const users = [createTestUser(1, 'overdue')]
+      const users = [createUser(1, 'overdue')]
 
       const { rerender, container } = render(<MonitorColumn {...defaultProps} users={users} />)
       expect(container.querySelector('[role="region"]')).toBeInTheDocument()
@@ -374,7 +320,7 @@ describe('MonitorColumn', () => {
     })
 
     it('contador tem role status', () => {
-      const users = [createTestUser(1, 'overdue')]
+      const users = [createUser(1, 'overdue')]
       const { container } = render(<MonitorColumn {...defaultProps} users={users} />)
       const counter = container.querySelector('[role="status"].min-w-8')
       expect(counter).toHaveTextContent('1')
@@ -382,8 +328,8 @@ describe('MonitorColumn', () => {
 
     it('contador exibe valor correto para múltiplos usuários', () => {
       const users = [
-        createTestUser(1, 'overdue'),
-        createTestUser(2, 'overdue'),
+        createUser(1, 'overdue'),
+        createUser(2, 'overdue'),
       ]
       const { container } = render(<MonitorColumn {...defaultProps} users={users} />)
       const counter = container.querySelector('[role="status"].min-w-8')
@@ -391,7 +337,7 @@ describe('MonitorColumn', () => {
     })
 
     it('título é exibido corretamente', () => {
-      const users = [createTestUser(1, 'overdue')]
+      const users = [createUser(1, 'overdue')]
       render(<MonitorColumn {...defaultProps} users={users} title="ATRASADOS" />)
       expect(screen.getByText('ATRASADOS')).toBeInTheDocument()
     })
@@ -399,7 +345,7 @@ describe('MonitorColumn', () => {
 
   describe('Memoização', () => {
     it('não re-renderiza quando props não mudam', () => {
-      const users = [createTestUser(1, 'overdue')]
+      const users = [createUser(1, 'overdue')]
       const { rerender } = render(<MonitorColumn {...defaultProps} users={users} />)
 
       rerender(<MonitorColumn {...defaultProps} users={users} />)

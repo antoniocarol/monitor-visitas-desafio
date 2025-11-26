@@ -1,14 +1,16 @@
 "use client";
 
-import { useState, memo, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Check, Loader2, Calendar, Repeat, Square, CheckSquare } from "lucide-react";
 import { ProcessedUser } from "../../types/monitor";
 import { StatusBadge } from "../StatusBadge";
-import { formatCPF, formatLastVisitRelative, formatNextVisitRelative } from "../../utils/dateCalculations";
 import { DateDisplay } from "../DateDisplay";
+import { formatCPF, formatLastVisitRelative, formatNextVisitRelative } from "../../utils/dateCalculations";
 import { STATUS_STYLES } from "../../constants/statusStyles";
 import { STATUS_ICONS } from "../../constants/statusIcons";
+
+const LONG_PRESS_DURATION_MS = 500;
 
 interface MonitorCardProps {
   user: ProcessedUser;
@@ -18,8 +20,6 @@ interface MonitorCardProps {
   onToggleSelection?: (userId: number) => void;
   onLongPress?: (userId: number) => void;
 }
-
-const LONG_PRESS_DURATION = 500;
 
 export const MonitorCard = memo(function MonitorCard({
   user,
@@ -31,6 +31,7 @@ export const MonitorCard = memo(function MonitorCard({
 }: MonitorCardProps): React.JSX.Element {
   const [loading, setLoading] = useState(false);
   const [justUpdated, setJustUpdated] = useState(false);
+
   const longPressTimer = useRef<NodeJS.Timeout | null>(null);
   const isLongPressing = useRef(false);
 
@@ -39,22 +40,15 @@ export const MonitorCard = memo(function MonitorCard({
   const style = STATUS_STYLES[status];
   const StatusIcon = STATUS_ICONS[status];
 
+  // UPDATE HIGHLIGHT FLUX >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
   useEffect(() => {
     setJustUpdated(true);
     const timer = setTimeout(() => setJustUpdated(false), 1500);
     return () => clearTimeout(timer);
   }, [user.last_verified_date]);
+  // UPDATE HIGHLIGHT FLUX <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
-  const handleRegisterVisit = async () => {
-    if (isSelectionMode) return;
-    setLoading(true);
-    try {
-      await onRegisterVisit(user.id);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // LONG PRESS FLUX >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
   const clearLongPress = useCallback(() => {
     if (longPressTimer.current) {
       clearTimeout(longPressTimer.current);
@@ -62,6 +56,19 @@ export const MonitorCard = memo(function MonitorCard({
     }
   }, []);
 
+  const handlePointerDown = useCallback(() => {
+    if (isSelectionMode) return;
+    longPressTimer.current = setTimeout(() => {
+      isLongPressing.current = true;
+      onLongPress?.(user.id);
+      navigator.vibrate?.(50);
+    }, LONG_PRESS_DURATION_MS);
+  }, [isSelectionMode, onLongPress, user.id]);
+
+  useEffect(() => clearLongPress, [clearLongPress]);
+  // LONG PRESS FLUX <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
+  // INTERACTION FLUX >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
   const handleClick = useCallback(() => {
     if (isLongPressing.current) {
       isLongPressing.current = false;
@@ -70,16 +77,16 @@ export const MonitorCard = memo(function MonitorCard({
     if (isSelectionMode) onToggleSelection?.(user.id);
   }, [isSelectionMode, onToggleSelection, user.id]);
 
-  const handlePointerDown = useCallback(() => {
+  const handleRegisterVisit = useCallback(async () => {
     if (isSelectionMode) return;
-    longPressTimer.current = setTimeout(() => {
-      isLongPressing.current = true;
-      onLongPress?.(user.id);
-      navigator.vibrate?.(50);
-    }, LONG_PRESS_DURATION);
-  }, [isSelectionMode, onLongPress, user.id]);
-
-  useEffect(() => clearLongPress, [clearLongPress]);
+    setLoading(true);
+    try {
+      await onRegisterVisit(user.id);
+    } finally {
+      setLoading(false);
+    }
+  }, [isSelectionMode, onRegisterVisit, user.id]);
+  // INTERACTION FLUX <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
 
   return (
     <article

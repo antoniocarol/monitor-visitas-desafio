@@ -1,3 +1,5 @@
+"use client";
+
 import { useEffect, useRef } from "react";
 
 interface KeyboardShortcutsConfig {
@@ -6,31 +8,25 @@ interface KeyboardShortcutsConfig {
   onEscape?: () => void;
 }
 
+const SHORTCUTS: Record<string, { cb: keyof KeyboardShortcutsConfig; mod: boolean }> = {
+  r: { cb: "onRefresh", mod: true },
+  k: { cb: "onSearch", mod: true },
+  Escape: { cb: "onEscape", mod: false },
+};
+
 export function useKeyboardShortcuts(callbacks: KeyboardShortcutsConfig): void {
-  const callbacksRef = useRef(callbacks);
+  const ref = useRef(callbacks);
+
+  useEffect(() => { ref.current = callbacks; }, [callbacks]);
 
   useEffect(() => {
-    callbacksRef.current = callbacks;
-  }, [callbacks]);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'r') {
-        e.preventDefault();
-        callbacksRef.current.onRefresh?.();
-      }
-
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        callbacksRef.current.onSearch?.();
-      }
-
-      if (e.key === 'Escape') {
-        callbacksRef.current.onEscape?.();
-      }
+    const handler = (e: KeyboardEvent) => {
+      const s = SHORTCUTS[e.key];
+      if (!s || (s.mod && !(e.metaKey || e.ctrlKey))) return;
+      if (s.mod) e.preventDefault();
+      ref.current[s.cb]?.();
     };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
   }, []);
 }

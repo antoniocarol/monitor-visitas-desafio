@@ -2,59 +2,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { ConfirmationModal } from './index'
-import { ProcessedUser } from '../../types/monitor'
+import { ProcessedUser, MonitorStatus } from '../../types/monitor'
+import { createTestUser } from '../../__tests__/factories/createTestUser'
 
-vi.mock('framer-motion', () => ({
-  motion: {
-    div: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => (
-      <div {...props}>{children}</div>
-    ),
-  },
-  AnimatePresence: ({ children }: React.PropsWithChildren) => <>{children}</>,
-}))
-
-function createTestUser(
-  id: number,
-  status: 'overdue' | 'urgent' | 'scheduled',
-  name: string = `Usuário ${id}`
-): ProcessedUser {
-  const base = {
-    id,
-    name,
-    cpf: `${id}`.padStart(11, '0'),
-    active: true,
-    last_verified_date: '2025/11/20 10:00:00',
-    verify_frequency_in_days: 3,
-    nextVisitDate: new Date('2025-11-23'),
-    lastVerifiedDateObj: new Date('2025-11-20T10:00:00'),
-    cpfDigits: `${id}`.padStart(11, '0'),
-    nameLower: name.toLowerCase(),
-    daysOverdue: 0,
-    daysRemaining: 0,
-  }
-
-  if (status === 'overdue') {
-    return {
-      ...base,
-      status: 'overdue' as const,
-      daysOverdue: 5,
-    }
-  }
-
-  if (status === 'urgent') {
-    return {
-      ...base,
-      status: 'urgent' as const,
-      daysRemaining: 1,
-    }
-  }
-
-  return {
-    ...base,
-    status: 'scheduled' as const,
-    daysRemaining: 7,
-  }
-}
+const createUser = (id: number, status: MonitorStatus, name = `Usuário ${id}`): ProcessedUser =>
+  createTestUser({ id, status, name })
 
 describe('ConfirmationModal', () => {
   const mockOnConfirm = vi.fn()
@@ -62,7 +14,7 @@ describe('ConfirmationModal', () => {
 
   const defaultProps = {
     isOpen: true,
-    users: [createTestUser(1, 'overdue', 'João Silva')],
+    users: [createUser(1, 'overdue', 'João Silva')],
     onConfirm: mockOnConfirm,
     onCancel: mockOnCancel,
     loading: false,
@@ -99,15 +51,15 @@ describe('ConfirmationModal', () => {
     })
 
     it('mostra contagem de usuários correta (singular)', () => {
-      render(<ConfirmationModal {...defaultProps} users={[createTestUser(1, 'overdue')]} />)
+      render(<ConfirmationModal {...defaultProps} users={[createUser(1, 'overdue')]} />)
       expect(screen.getByText(/monitorado:/)).toBeInTheDocument()
     })
 
     it('mostra contagem de usuários correta (plural)', () => {
       const users = [
-        createTestUser(1, 'overdue'),
-        createTestUser(2, 'urgent'),
-        createTestUser(3, 'scheduled'),
+        createUser(1, 'overdue'),
+        createUser(2, 'urgent'),
+        createUser(3, 'scheduled'),
       ]
       render(<ConfirmationModal {...defaultProps} users={users} />)
       expect(screen.getByText(/monitorados:/)).toBeInTheDocument()
@@ -115,9 +67,9 @@ describe('ConfirmationModal', () => {
 
     it('lista nomes de todos os usuários', () => {
       const users = [
-        createTestUser(1, 'overdue', 'João Silva'),
-        createTestUser(2, 'urgent', 'Maria Santos'),
-        createTestUser(3, 'scheduled', 'Pedro Oliveira'),
+        createUser(1, 'overdue', 'João Silva'),
+        createUser(2, 'urgent', 'Maria Santos'),
+        createUser(3, 'scheduled', 'Pedro Oliveira'),
       ]
       render(<ConfirmationModal {...defaultProps} users={users} />)
 
@@ -127,7 +79,7 @@ describe('ConfirmationModal', () => {
     })
 
     it('mostra status "Xd atraso" para usuário overdue', () => {
-      const overdueUser = createTestUser(1, 'overdue')
+      const overdueUser = createUser(1, 'overdue')
       render(<ConfirmationModal {...defaultProps} users={[overdueUser]} />)
 
       expect(screen.getByText(/5d atraso/i)).toBeInTheDocument()
@@ -135,7 +87,7 @@ describe('ConfirmationModal', () => {
 
     it('mostra status "hoje" para usuário urgent com 0 dias', () => {
       const urgentUser: ProcessedUser = {
-        ...createTestUser(1, 'urgent'),
+        ...createUser(1, 'urgent'),
         daysRemaining: 0,
       }
       render(<ConfirmationModal {...defaultProps} users={[urgentUser]} />)
@@ -145,7 +97,7 @@ describe('ConfirmationModal', () => {
 
     it('mostra status "amanhã" para usuário urgent com 1 dia', () => {
       const urgentUser: ProcessedUser = {
-        ...createTestUser(1, 'urgent'),
+        ...createUser(1, 'urgent'),
         daysRemaining: 1,
       }
       render(<ConfirmationModal {...defaultProps} users={[urgentUser]} />)
@@ -154,14 +106,14 @@ describe('ConfirmationModal', () => {
     })
 
     it('mostra status "em Xd" para usuário scheduled', () => {
-      const scheduledUser = createTestUser(1, 'scheduled')
+      const scheduledUser = createUser(1, 'scheduled')
       render(<ConfirmationModal {...defaultProps} users={[scheduledUser]} />)
 
       expect(screen.getByText(/em 7d/i)).toBeInTheDocument()
     })
 
     it('mostra aviso para usuários atrasados', () => {
-      render(<ConfirmationModal {...defaultProps} users={[createTestUser(1, 'overdue')]} />)
+      render(<ConfirmationModal {...defaultProps} users={[createUser(1, 'overdue')]} />)
 
       expect(
         screen.getByText(/Alguns monitorados estão com visitas atrasadas/i)
@@ -169,7 +121,7 @@ describe('ConfirmationModal', () => {
     })
 
     it('não mostra aviso quando não há usuários atrasados', () => {
-      render(<ConfirmationModal {...defaultProps} users={[createTestUser(1, 'scheduled')]} />)
+      render(<ConfirmationModal {...defaultProps} users={[createUser(1, 'scheduled')]} />)
 
       expect(
         screen.queryByText(/Alguns monitorados estão com visitas atrasadas/i)
@@ -335,7 +287,7 @@ describe('ConfirmationModal', () => {
 
   describe('Cores de status', () => {
     it('aplica cor vermelha para status overdue', () => {
-      render(<ConfirmationModal {...defaultProps} users={[createTestUser(1, 'overdue')]} />)
+      render(<ConfirmationModal {...defaultProps} users={[createUser(1, 'overdue')]} />)
 
       const statusText = screen.getByText(/5d atraso/i)
       expect(statusText).toHaveClass('text-red-400')
@@ -343,7 +295,7 @@ describe('ConfirmationModal', () => {
 
     it('aplica cor amarela para status urgent', () => {
       const urgentUser: ProcessedUser = {
-        ...createTestUser(1, 'urgent'),
+        ...createUser(1, 'urgent'),
         daysRemaining: 0,
       }
       render(<ConfirmationModal {...defaultProps} users={[urgentUser]} />)
@@ -353,7 +305,7 @@ describe('ConfirmationModal', () => {
     })
 
     it('aplica cor verde para status scheduled', () => {
-      render(<ConfirmationModal {...defaultProps} users={[createTestUser(1, 'scheduled')]} />)
+      render(<ConfirmationModal {...defaultProps} users={[createUser(1, 'scheduled')]} />)
 
       const statusText = screen.getByText(/em 7d/i)
       expect(statusText).toHaveClass('text-emerald-400')

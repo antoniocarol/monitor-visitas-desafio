@@ -4,6 +4,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { SearchBar } from './index'
 import { MonitorColumnData } from '../../types/monitor'
+import { createTestUser } from '../../__tests__/factories/createTestUser'
 
 describe('SearchBar', () => {
   const mockOnSearchChange = vi.fn()
@@ -15,72 +16,12 @@ describe('SearchBar', () => {
   }
 
   const dataWithResults: MonitorColumnData = {
-    overdue: [
-      {
-        id: 1,
-        name: 'João Silva',
-        cpf: '12345678901',
-        active: true,
-        last_verified_date: '2025/11/20 10:00:00',
-        verify_frequency_in_days: 3,
-        nextVisitDate: new Date('2025-11-23'),
-        lastVerifiedDateObj: new Date('2025-11-20T10:00:00'),
-        cpfDigits: '12345678901',
-        nameLower: 'joão silva',
-        status: 'overdue' as const,
-        daysOverdue: 5,
-        daysRemaining: 0,
-      },
-    ],
+    overdue: [createTestUser({ id: 1, name: 'João Silva', status: 'overdue' })],
     urgent: [
-      {
-        id: 2,
-        name: 'Maria Santos',
-        cpf: '98765432100',
-        active: true,
-        last_verified_date: '2025/11/24 10:00:00',
-        verify_frequency_in_days: 7,
-        nextVisitDate: new Date('2025-12-01'),
-        lastVerifiedDateObj: new Date('2025-11-24T10:00:00'),
-        cpfDigits: '98765432100',
-        nameLower: 'maria santos',
-        status: 'urgent' as const,
-        daysOverdue: 0,
-        daysRemaining: 1,
-      },
-      {
-        id: 3,
-        name: 'Pedro Oliveira',
-        cpf: '11122233344',
-        active: true,
-        last_verified_date: '2025/11/25 10:00:00',
-        verify_frequency_in_days: 7,
-        nextVisitDate: new Date('2025-12-02'),
-        lastVerifiedDateObj: new Date('2025-11-25T10:00:00'),
-        cpfDigits: '11122233344',
-        nameLower: 'pedro oliveira',
-        status: 'urgent' as const,
-        daysOverdue: 0,
-        daysRemaining: 2,
-      },
+      createTestUser({ id: 2, name: 'Maria Santos', status: 'urgent' }),
+      createTestUser({ id: 3, name: 'Pedro Oliveira', status: 'urgent', daysRemaining: 2 }),
     ],
-    scheduled: [
-      {
-        id: 4,
-        name: 'Ana Costa',
-        cpf: '55566677788',
-        active: true,
-        last_verified_date: '2025/11/20 10:00:00',
-        verify_frequency_in_days: 14,
-        nextVisitDate: new Date('2025-12-04'),
-        lastVerifiedDateObj: new Date('2025-11-20T10:00:00'),
-        cpfDigits: '55566677788',
-        nameLower: 'ana costa',
-        status: 'scheduled' as const,
-        daysOverdue: 0,
-        daysRemaining: 10,
-      },
-    ],
+    scheduled: [createTestUser({ id: 4, name: 'Ana Costa', status: 'scheduled', daysRemaining: 10 })],
   }
 
   const defaultProps = {
